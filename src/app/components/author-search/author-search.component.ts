@@ -2,7 +2,7 @@ import { Component } from '@angular/core';
 import { DblpService } from '../../services/dblp.service';
 import { MasterfileGeneratorService } from '../../services/masterfile-generator.service';
 import { FormsModule } from '@angular/forms';
-import { NgForOf, NgIf } from '@angular/common';
+
 import {MasterfileAdapterService} from '../../services/masterfile-adapter.service';
 import {DblpFilters, DblpSparqlService} from '../../services/dblp-sparql.service';
 import {firstValueFrom} from 'rxjs';
@@ -13,10 +13,8 @@ import {CsvIndexService} from '../../services/csv-index.service';
   templateUrl: './author-search.component.html',
   standalone: true,
   imports: [
-    FormsModule,
-    NgIf,
-    NgForOf
-  ],
+    FormsModule
+],
   styleUrls: ['./author-search.component.css']
 })
 export class AuthorSearchComponent {

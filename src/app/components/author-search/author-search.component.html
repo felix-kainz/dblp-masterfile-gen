@@ -15,217 +15,232 @@
             [(ngModel)]="authorName"
             placeholder="Enter author name"
             (keyup.enter)="searchAuthor()"
-          />
-          <button class="btn btn-primary" (click)="searchAuthor()">Search</button>
-        </div>
+            />
+            <button class="btn btn-primary" (click)="searchAuthor()">Search</button>
+          </div>
 
-        <div *ngIf="suggestions?.length">
-          <ul class="list-group mb-3">
-            <li *ngFor="let suggestion of suggestions" class="list-group-item p-0">
-              <button type="button"
+          @if (suggestions?.length) {
+            <div>
+              <ul class="list-group mb-3">
+                @for (suggestion of suggestions; track suggestion) {
+                  <li class="list-group-item p-0">
+                    <button type="button"
                       class="list-group-item list-group-item-action w-100 text-start"
                       (click)="selectAuthor(suggestion)">
-                {{ suggestion.hint }}
+                      {{ suggestion.hint }}
+                    </button>
+                  </li>
+                }
+              </ul>
+            </div>
+          }
+        </div>
+
+        <hr>
+
+          <!-- Option B: Enter PID directly -->
+          <div class="mb-3">
+            <h6 class="text-muted">Option B: Enter author PID directly</h6>
+            <div class="input-group">
+              <input
+                type="text"
+                class="form-control"
+                [(ngModel)]="authorPid"
+                placeholder="e.g. 12/3456"
+                (keyup.enter)="confirmPid()"
+                />
+                <button class="btn btn-secondary" (click)="confirmPid()">Confirm PID</button>
+              </div>
+              <small class="form-text text-muted">
+                Copy from <code>https://dblp.org/pid/[pid]</code>
+              </small>
+            </div>
+          </div>
+        </div>
+
+        <!-- Filters Card -->
+        @if (authorPid) {
+          <div class="card shadow-sm mb-4">
+            <div class="card-body">
+              <h5 class="card-title mb-3">Filters</h5>
+              <div class="row mb-3">
+                <div class="col">
+                  <input type="number" class="form-control" [(ngModel)]="yearMin" placeholder="Year &geq;"/>
+                </div>
+                <div class="col">
+                  <input type="number" class="form-control" [(ngModel)]="yearMax" placeholder="Year &leq;"/>
+                </div>
+              </div>
+              <div class="mb-3">
+                <label for="pubTypes" class="form-label fw-bold">Publication types</label>
+                <div id="pubTypes" class="d-flex flex-wrap gap-3">
+                  <label><input type="checkbox" [(ngModel)]="types['Inproceedings']"> Inproceedings</label>
+                  <label><input type="checkbox" [(ngModel)]="types['Article']"> Article</label>
+                  <label><input type="checkbox" [(ngModel)]="types['Book']"> Book</label>
+                  <label><input type="checkbox" [(ngModel)]="types['Editorship']"> Editorship</label>
+                  <label><input type="checkbox" [(ngModel)]="types['Incollection']"> Incollection</label>
+                  <label><input type="checkbox" [(ngModel)]="types['Reference']"> Reference</label>
+                  <label><input type="checkbox" [(ngModel)]="types['Data']"> Data</label>
+                  <label><input type="checkbox" [(ngModel)]="types['Informal']"> Informal</label>
+                  <label><input type="checkbox" [(ngModel)]="types['Withdrawn']"> Withdrawn</label>
+                </div>
+              </div>
+              <div class="mb-3">
+                <label for="venue" class="form-label fw-bold">Venue/Series</label>
+                <input id="venue" class="form-control" [(ngModel)]="venueSuffix" placeholder="e.g. conf/gd or journals/jgaa">
+                <small class="form-text text-muted">
+                  Will expand to <code>https://dblp.org/streams/[your input]</code>
+                </small>
+              </div>
+              <div class="row mb-3">
+                <div class="col">
+                  <label for="coauthorPapers" class="form-label fw-bold">Min papers per author</label>
+                  <input id="coauthorPapers" type="number" min="0" class="form-control" [(ngModel)]="minAuthorPubs">
+                </div>
+                <div class="col">
+                  <label for="topAuthors" class="form-label fw-bold">Focus top-K authors</label>
+                  <input id="topAuthors" type="number" min="0" class="form-control" [(ngModel)]="focusTopAuthors">
+                </div>
+              </div>
+              <button class="btn btn-primary w-100"
+                [disabled]="loading || !authorPid"
+                (click)="generateWithSparql()">
+                @if (loading) {
+                  <span class="spinner-border spinner-border-sm me-2"></span>
+                }
+                {{ loading ? 'Generating...' : 'Generate dataset (SPARQL)' }}
               </button>
-            </li>
-          </ul>
-        </div>
-      </div>
-
-      <hr>
-
-      <!-- Option B: Enter PID directly -->
-      <div class="mb-3">
-        <h6 class="text-muted">Option B: Enter author PID directly</h6>
-        <div class="input-group">
-          <input
-            type="text"
-            class="form-control"
-            [(ngModel)]="authorPid"
-            placeholder="e.g. 12/3456"
-            (keyup.enter)="confirmPid()"
-          />
-          <button class="btn btn-secondary" (click)="confirmPid()">Confirm PID</button>
-        </div>
-        <small class="form-text text-muted">
-          Copy from <code>https://dblp.org/pid/[pid]</code>
-        </small>
-      </div>
-    </div>
-  </div>
-
-  <!-- Filters Card -->
-  <div class="card shadow-sm mb-4" *ngIf="authorPid">
-    <div class="card-body">
-      <h5 class="card-title mb-3">Filters</h5>
-
-      <div class="row mb-3">
-        <div class="col">
-          <input type="number" class="form-control" [(ngModel)]="yearMin" placeholder="Year &geq;"/>
-        </div>
-        <div class="col">
-          <input type="number" class="form-control" [(ngModel)]="yearMax" placeholder="Year &leq;"/>
-        </div>
-      </div>
-
-      <div class="mb-3">
-        <label for="pubTypes" class="form-label fw-bold">Publication types</label>
-        <div id="pubTypes" class="d-flex flex-wrap gap-3">
-          <label><input type="checkbox" [(ngModel)]="types['Inproceedings']"> Inproceedings</label>
-          <label><input type="checkbox" [(ngModel)]="types['Article']"> Article</label>
-          <label><input type="checkbox" [(ngModel)]="types['Book']"> Book</label>
-          <label><input type="checkbox" [(ngModel)]="types['Editorship']"> Editorship</label>
-          <label><input type="checkbox" [(ngModel)]="types['Incollection']"> Incollection</label>
-          <label><input type="checkbox" [(ngModel)]="types['Reference']"> Reference</label>
-          <label><input type="checkbox" [(ngModel)]="types['Data']"> Data</label>
-          <label><input type="checkbox" [(ngModel)]="types['Informal']"> Informal</label>
-          <label><input type="checkbox" [(ngModel)]="types['Withdrawn']"> Withdrawn</label>
-        </div>
-      </div>
-
-      <div class="mb-3">
-        <label for="venue" class="form-label fw-bold">Venue/Series</label>
-        <input id="venue" class="form-control" [(ngModel)]="venueSuffix" placeholder="e.g. conf/gd or journals/jgaa">
-        <small class="form-text text-muted">
-          Will expand to <code>https://dblp.org/streams/[your input]</code>
-        </small>
-      </div>
-
-      <div class="row mb-3">
-        <div class="col">
-          <label for="coauthorPapers" class="form-label fw-bold">Min papers per author</label>
-          <input id="coauthorPapers" type="number" min="0" class="form-control" [(ngModel)]="minAuthorPubs">
-        </div>
-        <div class="col">
-          <label for="topAuthors" class="form-label fw-bold">Focus top-K authors</label>
-          <input id="topAuthors" type="number" min="0" class="form-control" [(ngModel)]="focusTopAuthors">
-        </div>
-      </div>
-
-      <button class="btn btn-primary w-100"
-              [disabled]="loading || !authorPid"
-              (click)="generateWithSparql()">
-        <span *ngIf="loading" class="spinner-border spinner-border-sm me-2"></span>
-        {{ loading ? 'Generating...' : 'Generate dataset (SPARQL)' }}
-      </button>
-    </div>
-  </div>
-
-  <!-- Mass Mode Panel -->
-  <div class="card shadow-sm mb-4">
-    <div class="card-body">
-      <div class="form-check form-switch mb-3">
-        <input class="form-check-input" type="checkbox" id="massModeSwitch" [(ngModel)]="massMode.enabled">
-        <label class="form-check-label" for="massModeSwitch">Mass mode (prefix numbering + CSV append)</label>
-      </div>
-
-      <div *ngIf="massMode.enabled" class="row g-3 align-items-end">
-        <div class="col-md-4">
-          <label for="testsetId" class="form-label fw-bold">Testset ID</label>
-          <input id="testsetId" class="form-control" [(ngModel)]="massMode.testsetId" placeholder="e.g. testset1">
-          <small class="text-muted">Used for filenames & CSV</small>
-        </div>
-        <div class="col-md-3">
-          <label for="prefixGroup" class="form-label fw-bold">Next prefix</label>
-          <div id="prefixGroup" class="input-group">
-            <input class="form-control" [(ngModel)]="massMode.seq" type="number" min="1">
-            <span class="input-group-text">&rightarrow; will render as {{ nextPrefix() }}</span>
+            </div>
           </div>
-          <small class="text-muted">Starts at 1 &rightarrow; "001", then "002", ...</small>
-        </div>
-        <div class="col-md-5">
-          <label for="exportActions" class="form-label fw-bold invisible">Actions</label>
-          <div id="exportActions" class="d-flex gap-2">
-            <button class="btn btn-outline-primary flex-fill"
-                    [disabled]="!massMode.testsetId"
-                    (click)="downloadCsvIndex()">
-              Download CSV index
-            </button>
-            <button class="btn btn-outline-danger flex-fill"
-                    [disabled]="!massMode.testsetId"
-                    (click)="resetCsvIndex()">
-              Reset CSV for testset
-            </button>
+        }
+
+        <!-- Mass Mode Panel -->
+        <div class="card shadow-sm mb-4">
+          <div class="card-body">
+            <div class="form-check form-switch mb-3">
+              <input class="form-check-input" type="checkbox" id="massModeSwitch" [(ngModel)]="massMode.enabled">
+              <label class="form-check-label" for="massModeSwitch">Mass mode (prefix numbering + CSV append)</label>
+            </div>
+
+            @if (massMode.enabled) {
+              <div class="row g-3 align-items-end">
+                <div class="col-md-4">
+                  <label for="testsetId" class="form-label fw-bold">Testset ID</label>
+                  <input id="testsetId" class="form-control" [(ngModel)]="massMode.testsetId" placeholder="e.g. testset1">
+                  <small class="text-muted">Used for filenames & CSV</small>
+                </div>
+                <div class="col-md-3">
+                  <label for="prefixGroup" class="form-label fw-bold">Next prefix</label>
+                  <div id="prefixGroup" class="input-group">
+                    <input class="form-control" [(ngModel)]="massMode.seq" type="number" min="1">
+                    <span class="input-group-text">&rightarrow; will render as {{ nextPrefix() }}</span>
+                  </div>
+                  <small class="text-muted">Starts at 1 &rightarrow; "001", then "002", ...</small>
+                </div>
+                <div class="col-md-5">
+                  <label for="exportActions" class="form-label fw-bold invisible">Actions</label>
+                  <div id="exportActions" class="d-flex gap-2">
+                    <button class="btn btn-outline-primary flex-fill"
+                      [disabled]="!massMode.testsetId"
+                      (click)="downloadCsvIndex()">
+                      Download CSV index
+                    </button>
+                    <button class="btn btn-outline-danger flex-fill"
+                      [disabled]="!massMode.testsetId"
+                      (click)="resetCsvIndex()">
+                      Reset CSV for testset
+                    </button>
+                  </div>
+                  <small class="text-muted invisible">placeholder</small>
+                </div>
+                <div class="col-12">
+                  <small class="text-muted">
+                    On each MASTER download, a CSV row will be appended automatically.
+                    Filename preview:
+                    <code>{{ previewMasterFilename() }}</code>
+                  </small>
+                </div>
+              </div>
+            }
           </div>
-          <small class="text-muted invisible">placeholder</small>
         </div>
-        <div class="col-12">
-          <small class="text-muted">
-            On each MASTER download, a CSV row will be appended automatically.
-            Filename preview:
-            <code>{{ previewMasterFilename() }}</code>
-          </small>
+
+        @if (massMode.enabled) {
+          <div class="mt-3 border-top pt-3">
+            <label for="pidCsv" class="form-label fw-bold">Import PIDs from CSV</label>
+            <input id="pidCsv" type="file" class="form-control" accept=".csv" (change)="onCsvSelected($event)"/>
+            <small class="form-text text-muted">
+              CSV must contain a column <code>pid</code> (or <code>PID</code>).
+              Native support for CSV downloads exported directly from
+              <a href="https://sparql.dblp.org/" target="_blank" rel="noopener">sparql.dblp.org</a>.
+            </small>
+            <div class="d-flex gap-2 mt-2">
+              <button class="btn btn-primary"
+                [disabled]="!batch.pids.length || batch.running || !massMode.testsetId"
+                (click)="startBatch()">
+                Start Batch ({{ batch.pids.length }} PIDs)
+              </button>
+              <button class="btn btn-outline-danger"
+                [disabled]="!batch.running"
+                (click)="cancelBatch()">
+                Cancel
+              </button>
+              <div class="form-check ms-2 mt-2">
+                <input type="checkbox"
+                  class="form-check-input"
+                  id="downloadMeta"
+                  [(ngModel)]="downloadMetaEnabled">
+                  <label class="form-check-label" for="downloadMeta">
+                    Also download metadata (.meta.json)
+                  </label>
+                </div>
+              </div>
+              @if (batch.running || batch.doneCount>0) {
+                <div class="mt-2 small">
+                  <div>Progress: {{ batch.doneCount }} / {{ batch.total }}</div>
+                  @if (batch.lastMessage) {
+                    <div>{{ batch.lastMessage }}</div>
+                  }
+                  @if (batch.errors.length) {
+                    <div class="text-danger">
+                      Errors: {{ batch.errors.length }} (first: {{ batch.errors[0] }})
+                    </div>
+                  }
+                </div>
+              }
+            </div>
+          }
+
+          <!-- Results Card -->
+
+          @if (noResults) {
+            <div class="alert alert-warning text-center mb-3">
+              No publications found for the selected author and filters.
+            </div>
+          }
+
+          @if (statsSummary) {
+            <div class="alert alert-info text-center mb-3" style="white-space: pre-line;">
+              {{ statsSummary }}
+            </div>
+          }
+
+          @if (masterfileLines?.length) {
+            <div class="card shadow-sm">
+              <div class="card-body">
+                <h5 class="card-title mb-3">Generated MASTER-File</h5>
+                <pre class="form-control" style="height: 300px; overflow-y: scroll;">
+                  {{ masterfileLines.join('\n') }}
+                </pre>
+                <div class="d-flex flex-column flex-md-row gap-2 mt-3">
+                  <button class="btn btn-success flex-fill" (click)="downloadMasterfile()">
+                    Download MASTER-File
+                  </button>
+                  <button class="btn btn-outline-secondary flex-fill" (click)="downloadMeta()">
+                    Download Metadata (JSON)
+                  </button>
+                </div>
+              </div>
+            </div>
+          }
         </div>
-      </div>
-    </div>
-  </div>
-
-  <div *ngIf="massMode.enabled" class="mt-3 border-top pt-3">
-    <label for="pidCsv" class="form-label fw-bold">Import PIDs from CSV</label>
-    <input id="pidCsv" type="file" class="form-control" accept=".csv" (change)="onCsvSelected($event)"/>
-    <small class="form-text text-muted">
-      CSV must contain a column <code>pid</code> (or <code>PID</code>).
-      Native support for CSV downloads exported directly from
-      <a href="https://sparql.dblp.org/" target="_blank" rel="noopener">sparql.dblp.org</a>.
-    </small>
-
-    <div class="d-flex gap-2 mt-2">
-      <button class="btn btn-primary"
-              [disabled]="!batch.pids.length || batch.running || !massMode.testsetId"
-              (click)="startBatch()">
-        Start Batch ({{ batch.pids.length }} PIDs)
-      </button>
-      <button class="btn btn-outline-danger"
-              [disabled]="!batch.running"
-              (click)="cancelBatch()">
-        Cancel
-      </button>
-
-      <div class="form-check ms-2 mt-2">
-        <input type="checkbox"
-               class="form-check-input"
-               id="downloadMeta"
-               [(ngModel)]="downloadMetaEnabled">
-        <label class="form-check-label" for="downloadMeta">
-          Also download metadata (.meta.json)
-        </label>
-      </div>
-
-    </div>
-
-    <div *ngIf="batch.running || batch.doneCount>0" class="mt-2 small">
-      <div>Progress: {{ batch.doneCount }} / {{ batch.total }}</div>
-      <div *ngIf="batch.lastMessage">{{ batch.lastMessage }}</div>
-      <div *ngIf="batch.errors.length" class="text-danger">
-        Errors: {{ batch.errors.length }} (first: {{ batch.errors[0] }})
-      </div>
-    </div>
-  </div>
-
-  <!-- Results Card -->
-
-  <div *ngIf="noResults" class="alert alert-warning text-center mb-3">
-    No publications found for the selected author and filters.
-  </div>
-
-  <div *ngIf="statsSummary" class="alert alert-info text-center mb-3" style="white-space: pre-line;">
-    {{ statsSummary }}
-  </div>
-
-  <div class="card shadow-sm" *ngIf="masterfileLines?.length">
-    <div class="card-body">
-      <h5 class="card-title mb-3">Generated MASTER-File</h5>
-      <pre class="form-control" style="height: 300px; overflow-y: scroll;">
-        {{ masterfileLines.join('\n') }}
-      </pre>
-      <div class="d-flex flex-column flex-md-row gap-2 mt-3">
-        <button class="btn btn-success flex-fill" (click)="downloadMasterfile()">
-          Download MASTER-File
-        </button>
-        <button class="btn btn-outline-secondary flex-fill" (click)="downloadMeta()">
-          Download Metadata (JSON)
-        </button>
-      </div>
-    </div>
-  </div>
-</div>
